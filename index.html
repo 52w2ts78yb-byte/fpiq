@@ -1333,11 +1333,30 @@ const ItemRow = memo(function ItemRow({ item, ev, state, thr, evNote, expanded, 
 });
 
 // ── HOME SCREEN ───────────────────────────────────────
-function HomeScreen({ cases, onOpen, onCaseCreated, onCaseDeleted }) {
+function HomeScreen({ cases, onOpen, onCaseCreated, onCaseDeleted, onCaseImported }) {
   const [showForm,   setShowForm]   = useState(false);
   const [code,       setCode]       = useState('');
   const [rid,        setRid]        = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const importRef = useRef(null);
+
+  const importCase = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const c = JSON.parse(ev.target.result);
+        if (!c.id || !c.code) throw new Error('Invalid case file');
+        c.updated = new Date().toISOString();
+        onCaseImported(c);
+      } catch {
+        alert('Could not import — file may be corrupt or not an FPIQ case.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   const saveApp = async () => {
     let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
@@ -1408,7 +1427,17 @@ function HomeScreen({ cases, onOpen, onCaseCreated, onCaseDeleted }) {
           onClick: saveApp,
           title: 'Download a copy of this app file',
           style: { ...btn(false), fontSize: 12, color: C.txtMut }
-        }, '↓ Save app'),
+        }, '\u2193 Save app'),
+        h('button', {
+          onClick: () => importRef.current && importRef.current.click(),
+          title: 'Import a case from JSON file',
+          style: { ...btn(false), fontSize: 12 }
+        }, '\u2191 Import case'),
+        h('input', {
+          ref: importRef, type: 'file', accept: '.json',
+          onChange: importCase,
+          style: { display: 'none' }
+        }),
         h('button', {
           onClick: () => setShowForm(s => !s),
           style: { ...btn(showForm), fontSize: 13 }
@@ -2490,28 +2519,67 @@ function CaseScreen({ caseData, onBack, onUpdate }) {
   );
 }
 
+// ── PASSWORD GATE ─────────────────────────────────────
+const APP_PASSWORD = 'fpiq2026';
+const AUTH_KEY     = 'fpiq_auth';
+
+function LoginScreen({ onAuth }) {
+  const [pw, setPw]   = useState('');
+  const [err, setErr] = useState(false);
+
+  const attempt = () => {
+    if (pw === APP_PASSWORD) {
+      sessionStorage.setItem(AUTH_KEY, '1');
+      onAuth();
+    } else {
+      setErr(true);
+      setPw('');
+      setTimeout(() => setErr(false), 2000);
+    }
+  };
+
+  return h('div', { style: { display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center', justifyContent: 'center', background: C.bg, gap: 16, padding: 32 } },
+    h('div', { style: { fontFamily: 'monospace', fontSize: 28, fontWeight: 700, color: C.accent, letterSpacing: '0.08em', marginBottom: 8 } }, 'FPIQ'),
+    h('div', { style: { fontSize: 12, color: C.txtMut, marginBottom: 24 } }, 'Forensic Psychiatric Interview'),
+    h('input', {
+      type: 'password',
+      value: pw,
+      onChange: e => setPw(e.target.value),
+      onKeyDown: e => e.key === 'Enter' && attempt(),
+      placeholder: 'Access code',
+      autoFocus: true,
+      style: { background: C.s1, border: `1px solid ${err ? C.sigRed : C.border}`, borderRadius: 8, padding: '10px 14px', fontSize: 16, color: C.txt, width: '100%', maxWidth: 280, outline: 'none', textAlign: 'center', letterSpacing: '0.15em' }
+    }),
+    err && h('div', { style: { fontSize: 12, color: C.sigRed } }, 'Incorrect access code'),
+    h('button', {
+      onClick: attempt,
+      style: { ...btn(true), fontSize: 14, padding: '10px 32px', borderRadius: 8, marginTop: 4 }
+    }, 'Enter')
+  );
+}
+
 // ── ROOT APP ──────────────────────────────────────────
 function App() {
-  const [view,       setView]  = useState('home');
-  const [cases,      setCases] = useState(null);
-  const [activeCase, setAC]    = useState(null);
+  const [authed,     setAuthed] = useState(() => !!sessionStorage.getItem(AUTH_KEY));
+  const [view,       setView]   = useState('home');
+  const [cases,      setCases]  = useState(null);
+  const [activeCase, setAC]     = useState(null);
 
   // Load all cases on startup
   useEffect(() => {
+    if (!authed) return;
     const idx    = LS.get('fpiq_index') || [];
     const loaded = idx.map(id => LS.get(`fpiq:${id}`)).filter(Boolean);
     setCases(loaded.sort((a, b) => new Date(b.updated) - new Date(a.updated)));
-  }, []);
+  }, [authed]);
 
   const openCase = useCallback(c => {
-    // Always reload fresh from localStorage
     const fresh = LS.get(`fpiq:${c.id}`) || c;
     setAC(fresh);
     setView('case');
   }, []);
 
   const back = useCallback(() => {
-    // Immediate save + refresh case in list
     if (activeCase) {
       const fresh = { ...activeCase, updated: new Date().toISOString() };
       LS.set(`fpiq:${fresh.id}`, fresh);
@@ -2534,14 +2602,27 @@ function App() {
     setCases(prev => (prev || []).filter(c => c.id !== id));
   }, []);
 
+  const onCaseImported = useCallback(c => {
+    // Merge imported case — if id exists, update; otherwise add
+    LS.set(`fpiq:${c.id}`, c);
+    const idx = LS.get('fpiq_index') || [];
+    if (!idx.includes(c.id)) LS.set('fpiq_index', [...idx, c.id]);
+    setCases(prev => {
+      const others = (prev || []).filter(x => x.id !== c.id);
+      return [c, ...others].sort((a, b) => new Date(b.updated) - new Date(a.updated));
+    });
+  }, []);
+
   const updateCase = useCallback(updater => {
     setAC(prev => typeof updater === 'function' ? updater(prev) : { ...prev, ...updater });
   }, []);
 
+  if (!authed) return h(LoginScreen, { onAuth: () => setAuthed(true) });
+
   if (view === 'case' && activeCase) {
     return h(CaseScreen, { caseData: activeCase, onBack: back, onUpdate: updateCase });
   }
-  return h(HomeScreen, { cases, onOpen: openCase, onCaseCreated, onCaseDeleted });
+  return h(HomeScreen, { cases, onOpen: openCase, onCaseCreated, onCaseDeleted, onCaseImported });
 }
 
 createRoot(document.getElementById('app')).render(h(App));
