@@ -1602,9 +1602,11 @@ function generatePrompt(cd) {
     cd.freeThreads.forEach(ft => lines.push('- ' + ft.text));
   }
   if (cd.presessionNotes) {
+    const notesBlocks = cd.presessionNotes.split(/\n\n---\n\n/);
+    const latestBlock = notesBlocks[notesBlocks.length - 1];
     lines.push('');
-    lines.push('Prior pre-session notes:');
-    lines.push(cd.presessionNotes.slice(0, 600) + (cd.presessionNotes.length > 600 ? '...' : ''));
+    lines.push('Prior pre-session notes (most recent):');
+    lines.push(latestBlock.slice(0, 600) + (latestBlock.length > 600 ? '...' : ''));
   }
   lines.push('');
   lines.push('\u2500'.repeat(46));
@@ -1648,10 +1650,10 @@ function parseImport(text) {
     if (items) result.threads = items.map(l => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean);
   }
 
-  // INDETERMINATE — lines: - code: rationale
+  // INDETERMINATE — lines: - code: rationale (dash optional; code: pattern below still validates)
   const indSection = structuredText.match(/INDETERMINATE:\s*([\s\S]*?)(?=\n[A-Z][A-Z\s]+:|$)/i);
   if (indSection) {
-    const items = indSection[1].match(/^\s*-\s*(.+)$/gm);
+    const items = indSection[1].match(/^[ \t]*-?[ \t]*(.+)$/gm);
     if (items) {
       items.forEach(l => {
         const m = l.replace(/^\s*-\s*/, '').match(/^([A-Za-z0-9._-]+):\s*(.+)$/);
@@ -1661,10 +1663,10 @@ function parseImport(text) {
     }
   }
 
-  // PROBES — lines: - code: question
+  // PROBES — lines: - code: question (dash optional; code: pattern below still validates)
   const probeSection = structuredText.match(/PROBES:\s*([\s\S]*?)(?=\n[A-Z][A-Z\s]+:|={3,}|$)/i);
   if (probeSection) {
-    const items = probeSection[1].match(/^\s*-\s*(.+)$/gm);
+    const items = probeSection[1].match(/^[ \t]*-?[ \t]*(.+)$/gm);
     if (items) {
       items.forEach(l => {
         const m = l.replace(/^\s*-\s*/, '').match(/^([A-Za-z0-9._-]+):\s*(.+)$/);
