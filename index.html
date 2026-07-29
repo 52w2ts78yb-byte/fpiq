@@ -2380,10 +2380,12 @@ function CaseScreen({ caseData, onBack, onUpdate }) {
             const threshMet   = thresh && (thresh.type === 'cluster' ? thresh.allMet : thresh.fullMet);
             const threshClose = thresh && !threshMet && (thresh.type === 'cluster' ? thresh.metCount > 0 : thresh.close);
             const isPSPriority = (cd.presessionPriority || []).includes(dom.id);
+            const fullyCleared = total > 0 && addr === total && pos === 0 && inc === 0;
 
-            // Border: threshold state overrides priority if stronger
+            // Border: threshold state overrides priority if stronger; fully-cleared (all negative) overrides priority too
             const borderStyle = threshMet    ? `2px solid ${C.posGreen}` :
                                 threshClose  ? `2px solid ${C.incAmber}` :
+                                fullyCleared ? `2px solid ${C.negGray}` :
                                 pri === 'primary'   ? `2px solid ${C.priPrimary}` :
                                 pri === 'secondary' ? `1px solid ${C.priSecondary}` :
                                 isPSPriority ? `2px solid ${C.flag}` :
@@ -2392,6 +2394,7 @@ function CaseScreen({ caseData, onBack, onUpdate }) {
             const bgStyle = isOpen      ? C.accentBg :
                             threshMet   ? 'rgba(72,187,120,0.08)' :
                             threshClose ? 'rgba(237,137,54,0.06)' :
+                            fullyCleared ? C.negBg :
                             isPSPriority ? 'rgba(246,173,85,0.06)' : C.s1;
 
             return h('div', {
@@ -2430,7 +2433,7 @@ function CaseScreen({ caseData, onBack, onUpdate }) {
                 h('span', { style: { fontSize: 9, fontFamily: 'monospace', color: C.txtMut, flexShrink: 0 } }, `${addr}/${total}`),
                 h('div', { style: { flex: 1, height: 3, borderRadius: 2, background: C.bg, display: 'flex', overflow: 'hidden' } },
                   pos > 0 && h('div', { style: { width: `${(pos / total) * 100}%`, background: threshMet ? C.posGreen : C.accent, opacity: 0.8 } }),
-                  neg > 0 && h('div', { style: { width: `${(neg / total) * 100}%`, background: C.txtMut, opacity: 0.5 } }),
+                  neg > 0 && h('div', { style: { width: `${(neg / total) * 100}%`, background: C.negGray, opacity: 0.8 } }),
                   inc > 0 && h('div', { style: { width: `${(inc / total) * 100}%`, background: C.incAmber, opacity: 0.8 } })
                 )
               )
