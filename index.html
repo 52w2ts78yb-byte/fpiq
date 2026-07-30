@@ -101,7 +101,7 @@ const C = {
 };
 
 // ── STATE CONFIGS ─────────────────────────────────────
-const CR_CYCLES = ['○', '+', '-', '~'];
+const CR_CYCLES = ['○', '-', '+', '~'];
 const EV_CYCLES = ['○', '✓', '⚑'];
 
 const CR = {
@@ -2470,7 +2470,7 @@ function CaseScreen({ caseData, onBack, onUpdate }) {
           h('button', { onClick: () => setOpenDom(null), style: { background: 'none', border: 'none', cursor: 'pointer', color: C.txtMut, fontSize: 20, padding: '0 4px', lineHeight: 1 } }, '×')
         ),
         h('div', { style: { fontSize: 10, color: C.txtMut, padding: '5px 14px', borderBottom: `1px solid ${C.s1}`, flexShrink: 0 } },
-          openDom.ev ? 'Tap badge: ○ → ✓ → ⚑  ·  ✎ for observation  ·  ⚑ to flag' : 'Tap badge: ○ → + → − → ~  ·  ✎ for note  ·  ⚑ to flag'
+          openDom.ev ? 'Tap badge: ○ → ✓ → ⚑  ·  ✎ for observation  ·  ⚑ to flag' : 'Tap badge: ○ → − → + → ~  ·  ✎ for note  ·  ⚑ to flag'
         ),
         h('div', { style: { flex: 1, overflowY: 'auto' } },
           ...openDom.items.map(it => h(ItemRow, {
