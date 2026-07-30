@@ -2383,6 +2383,11 @@ function CaseScreen({ caseData, onBack, onUpdate }) {
             const threshClose = thresh && !threshMet && (thresh.type === 'cluster' ? thresh.metCount > 0 : thresh.close);
             const isPSPriority = (cd.presessionPriority || []).includes(dom.id);
             const fullyCleared = total > 0 && addr === total && pos === 0 && inc === 0;
+            const probeItems = dom.items.filter(it => (cd.presessionProbes || {})[it.id]);
+            const psState = probeItems.length === 0 ? null :
+                            probeItems.some(it => (cd.coverage[it.id] || '○') === '○') ? 'active' :
+                            probeItems.some(it => cd.coverage[it.id] === '~') ? 'inconclusive' :
+                            'resolved';
 
             // Border: threshold state overrides priority if stronger; fully-cleared (all negative) overrides priority too
             const borderStyle = threshMet    ? `2px solid ${C.posGreen}` :
@@ -2417,7 +2422,17 @@ function CaseScreen({ caseData, onBack, onUpdate }) {
                 h('div', { style: { display: 'flex', alignItems: 'center', gap: 3 } },
                   h('span', { style: { fontFamily: 'monospace', fontSize: 9, color: C.txtMut, fontWeight: 600 } }, dom.code),
                   dom.ev && h('span', { style: { fontSize: 7, background: 'rgba(183,148,244,0.18)', color: '#b794f4', borderRadius: 2, padding: '0 3px', fontFamily: 'monospace', fontWeight: 600 } }, 'EV'),
-                  dom.items.some(it => (cd.presessionProbes || {})[it.id]) && h('span', { title: 'Has case-specific probes from pre-session import', style: { fontSize: 7, background: C.flagBg, color: C.flag, borderRadius: 2, padding: '0 3px', fontFamily: 'monospace', fontWeight: 700, border: `1px solid ${C.flagBdr}` } }, 'PS')
+                  psState && h('span', {
+                    title: psState === 'active' ? 'Has case-specific probes from pre-session import — not yet addressed'
+                         : psState === 'inconclusive' ? 'Pre-session probes addressed, but left inconclusive'
+                         : 'Pre-session probes addressed',
+                    style: {
+                      fontSize: 7, borderRadius: 2, padding: '0 3px', fontFamily: 'monospace', fontWeight: 700,
+                      background: psState === 'active' ? C.flagBg : psState === 'inconclusive' ? C.incBg : 'transparent',
+                      color: psState === 'active' ? C.flag : psState === 'inconclusive' ? C.incAmber : C.txtMut,
+                      border: `1px solid ${psState === 'active' ? C.flagBdr : psState === 'inconclusive' ? C.incAmber + '44' : C.border}`,
+                    }
+                  }, 'PS')
                 ),
                 h('div', { style: { display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' } },
                   ...dom.tags.slice(0, 2).map(t => h(Tag, { key: t, tag: t }))
