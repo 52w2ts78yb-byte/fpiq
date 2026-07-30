@@ -2428,9 +2428,9 @@ function CaseScreen({ caseData, onBack, onUpdate }) {
                          : 'Pre-session probes addressed',
                     style: {
                       fontSize: 7, borderRadius: 2, padding: '0 3px', fontFamily: 'monospace', fontWeight: 700,
-                      background: psState === 'active' ? C.flagBg : psState === 'inconclusive' ? C.incBg : 'transparent',
-                      color: psState === 'active' ? C.flag : psState === 'inconclusive' ? C.incAmber : C.txtMut,
-                      border: `1px solid ${psState === 'active' ? C.flagBdr : psState === 'inconclusive' ? C.incAmber + '44' : C.border}`,
+                      background: psState === 'resolved' ? C.clearedBg : C.flagBg,
+                      color: psState === 'resolved' ? C.clearedBorder : C.flag,
+                      border: psState === 'inconclusive' ? 'none' : `1px solid ${psState === 'resolved' ? C.clearedBorder + '44' : C.flagBdr}`,
                     }
                   }, 'PS')
                 ),
