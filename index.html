@@ -78,6 +78,8 @@ const C = {
   negBg:     'rgba(122,154,181,0.08)',
   incAmber:  '#ed8936',
   incBg:     'rgba(237,137,54,0.12)',
+  clearedBorder: '#5c2a2a',
+  clearedBg:     'rgba(92,42,42,0.08)',
   // Evaluative track
   notedBlue: '#63b3ed',
   notedBg:   'rgba(99,179,237,0.12)',
@@ -2385,7 +2387,7 @@ function CaseScreen({ caseData, onBack, onUpdate }) {
             // Border: threshold state overrides priority if stronger; fully-cleared (all negative) overrides priority too
             const borderStyle = threshMet    ? `2px solid ${C.posGreen}` :
                                 threshClose  ? `2px solid ${C.incAmber}` :
-                                fullyCleared ? `2px solid ${C.negGray}` :
+                                fullyCleared ? `2px solid ${C.clearedBorder}` :
                                 pri === 'primary'   ? `2px solid ${C.priPrimary}` :
                                 pri === 'secondary' ? `1px solid ${C.priSecondary}` :
                                 isPSPriority ? `2px solid ${C.flag}` :
@@ -2394,7 +2396,7 @@ function CaseScreen({ caseData, onBack, onUpdate }) {
             const bgStyle = isOpen      ? C.accentBg :
                             threshMet   ? 'rgba(72,187,120,0.08)' :
                             threshClose ? 'rgba(237,137,54,0.06)' :
-                            fullyCleared ? C.negBg :
+                            fullyCleared ? C.clearedBg :
                             isPSPriority ? 'rgba(246,173,85,0.06)' : C.s1;
 
             return h('div', {
@@ -2421,7 +2423,7 @@ function CaseScreen({ caseData, onBack, onUpdate }) {
                   ...dom.tags.slice(0, 2).map(t => h(Tag, { key: t, tag: t }))
                 )
               ),
-              h('div', { style: { fontSize: 11, fontWeight: 500, color: C.txt, lineHeight: 1.3, flex: 1 } }, dom.name),
+              h('div', { style: { fontSize: 11, fontWeight: 500, color: fullyCleared ? C.txtMut : C.txt, lineHeight: 1.3, flex: 1 } }, dom.name),
               // Threshold indicator
               thresh && h('div', { style: { display: 'flex', gap: 3, alignItems: 'center', flexWrap: 'wrap' } },
                 thresh.type === 'cluster'
